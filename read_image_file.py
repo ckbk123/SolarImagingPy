@@ -11,7 +11,7 @@ def read_image_file(control_sequence):
         print(f"{Fore.LIGHTRED_EX}IMPORTANT REMINDER: {Fore.LIGHTCYAN_EX}the image must be in black and white!! Script DOES NOT CHECK FOR THIS.{Style.RESET_ALL}")
         input(f"{Fore.LIGHTRED_EX}Are you sure that you put the Black and White version in SkyImageOfSite? (Press ENTER to continue){Style.RESET_ALL}")
 
-    files = os.listdir('./SkyImageOfSite')
+    files = os.listdir('../SkyImageOfSite')
 
     if (len(files) > 1):
         print(f"{Fore.RED}More than one file detected, therefore " + files[0] + f" will be used!{Style.RESET_ALL}")

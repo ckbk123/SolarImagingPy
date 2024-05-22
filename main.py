@@ -1,8 +1,8 @@
 # This is a sample Python script.
 from colorama import Fore, Style
 from read_user_data import read_user_data
-from compute_diffuse_shading_factor import compute_diffuse_shading_factor
-from compute_direct_shading_factor import compute_direct_shading_factor
+from compute_diffuse_shading_factor import compute_diffuse_shading_factor, compute_diffuse_shading_factor_NASA
+from compute_direct_shading_factor import compute_direct_shading_factor, adjust_NASA_direct_irradiance_with_surface_position
 from import_camera_intrinsic_function import import_camera_intrinsic_function
 from retrieve_PVGIS_irradiance import retrieve_PVGIS_irradiance
 from retrieve_NASA_POWER_irradiance import retrieve_NASA_POWER_irradiance
@@ -32,7 +32,7 @@ if __name__ == '__main__':
             print(f"{Fore.LIGHTCYAN_EX}It seems there are no changes available. Type r then ENTER to redo everything from scratch. Otherwise, type anything then ENTER and the procedure is skipped.{Style.RESET_ALL}")
             answer = input(f"{Fore.LIGHTCYAN_EX}Your choice... {Style.RESET_ALL}")
             if (answer == 'r'):
-                control_sequence = 1
+                control_sequence = 1            # PLEASE CHANGE THIS BACK TO ZERO AFTER FINISHED WORK 21/05/2024. This is to skip the calibration step
 
         ############################################# CALIBRATE CAMERA #################################################
         if (control_sequence < 1):
@@ -41,26 +41,33 @@ if __name__ == '__main__':
 
         ##################################### RAW IRRADIANCE + SOLAR COORDS ############################################
         if (control_sequence < 2):
-            hor_direct_irradiance, hor_diffuse_irradiance, time_array = retrieve_NASA_POWER_irradiance(
-                float(user_data['Lattitude (°)'][0]),
-                float(user_data['Longitude (°)'][0]),
-                str(int(user_data['Start year'][0])),
-                str(int(user_data['End year'][0])))
+            # hor_direct_irradiance_pvgis, hor_diffuse_irradiance_pvgis, time_array = retrieve_PVGIS_irradiance(
+            #     float(user_data['Lattitude (°)'][0]),
+            #     float(user_data['Longitude (°)'][0]),
+            #     str(int(user_data['Start year'][0])),
+            #     str(int(user_data['End year'][0])),
+            #     float(user_data['Orientation (°)'][0]),
+            #     float(user_data['Inclination (°)'][0]))
+
+            normal_direct_irradiance, hor_diffuse_irradiance, time_array = retrieve_NASA_POWER_irradiance(
+                    float(user_data['Lattitude (°)'][0]),
+                    float(user_data['Longitude (°)'][0]),
+                    str(int(user_data['Start year'][0])),
+                    str(int(user_data['End year'][0])))
             astropy_coords = sunpath_from_astropy(
                 float(user_data['Longitude (°)'][0]),
                 float(user_data['Lattitude (°)'][0]),
-                float(user_data['Elevation (m)'][0]) ,
+                float(user_data['Elevation (m)'][0]),
                 time_array)
-            direct_irradiance, diffuse_irradiance = adjust_NASA_irradiance_with_surface_position(
-                hor_direct_irradiance,
-                hor_diffuse_irradiance,
-                astropy_coords[0],
-                astropy_coords[1],
-                0,0)
-                # float(user_data['Orientation (°)'][0]),
-                # float(user_data['Inclination (°)'][0]))
 
-            raw_irradiance_data = {'Raw_direct': direct_irradiance, 'Raw_diffuse': diffuse_irradiance, 'Solar_az': astropy_coords[0], 'Solar_zen': astropy_coords[1]}
+            # with NASA POWER, we need to convert the normal_direct_irradiance over to horizontal_direct_irradiance
+            hor_direct_irradiance = adjust_NASA_direct_irradiance_with_surface_position(normal_direct_irradiance,
+                                                                                        astropy_coords[0],
+                                                                                        astropy_coords[1],
+                                                                                        float(user_data['Image orientation (°)'][0]),
+                                                                                        float(user_data['Image inclination (°)'][0]))
+
+            raw_irradiance_data = {'Raw_direct': hor_direct_irradiance, 'Raw_diffuse': hor_diffuse_irradiance, 'Solar_az': astropy_coords[0], 'Solar_zen': astropy_coords[1]}
             raw_irradiance_dataframe = pd.DataFrame(raw_irradiance_data, index=time_array)
             raw_irradiance_dataframe.index.name = 'Timeseries'
             raw_irradiance_dataframe.to_csv('./DebugData/raw_irradiance.csv')
@@ -79,13 +86,24 @@ if __name__ == '__main__':
             poly_incident_angle_to_radius, principal_point, estimated_fov = import_camera_intrinsic_function()
             im_height, im_width = skyimage.shape
 
-            diffuse_shading_factor = compute_diffuse_shading_factor(
-                skyimage,
-                poly_incident_angle_to_radius,
-                principal_point,
-                estimated_fov,
-                im_height,
-                im_width)
+            # diffuse_shading_factor = compute_diffuse_shading_factor(
+            #     skyimage,
+            #     poly_incident_angle_to_radius,
+            #     principal_point,
+            #     estimated_fov,
+            #     im_height,
+            #     im_width)
+
+            diffuse_shading_factor = compute_diffuse_shading_factor_NASA(image = skyimage,
+                                                poly_incident_angle_to_radius = poly_incident_angle_to_radius,
+                                                principal_point = principal_point,
+                                                estimated_fov = estimated_fov,
+                                                im_height = im_height,
+                                                im_width = im_width,
+                                                image_orientation = float(user_data['Image orientation (°)'][0]),
+                                                image_inclination = float(user_data['Image inclination (°)'][0]),
+                                                inclined_surface_orientation = float(user_data['Plane orientation (°)'][0]),
+                                                inclined_surface_inclination = float(user_data['Plane inclination (°)'][0]))
 
             direct_shading_factor = compute_direct_shading_factor(
                 skyimage,
@@ -93,8 +111,8 @@ if __name__ == '__main__':
                 im_width,
                 poly_incident_angle_to_radius,
                 principal_point,
-                float(user_data['Orientation (°)'][0]),
-                float(user_data['Inclination (°)'][0]),
+                float(user_data['Image orientation (°)'][0]),
+                float(user_data['Image inclination (°)'][0]),
                 estimated_fov,
                 astropy_coords,
                 time_array)

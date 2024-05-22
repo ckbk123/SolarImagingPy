@@ -46,7 +46,7 @@ def read_user_data():
 
     #################################### first read up System_Specifications.xlsx ######################################
     list_of_specs = ['Lattitude (°)', 'Longitude (°)', 'Elevation (m)', \
-                     'Orientation (°)', 'Inclination (°)', \
+                     'Image orientation (°)', 'Image inclination (°)', 'Plane orientation (°)', "Plane inclination (°)", \
                      'Calib vertex short', 'Calib vertex long', 'Calib square size (mm)', \
                      'Start year', 'End year', \
                      'Solar panel peak wattage (W)', 'Converter efficiency (%)', 'Converter max power (W)', \

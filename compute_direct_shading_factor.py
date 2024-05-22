@@ -6,7 +6,7 @@ from astropy_to_camera_extrinsic import astropy_to_camera_extrinsic
 
 from colorama import Fore, Style
 
-def compute_direct_shading_factor(image, im_height, im_width, poly_incident_angle_to_radius, principal_point, orientation, inclination, estimated_fov, az_zen_array, original_time_array):
+def compute_direct_shading_factor(image, im_height, im_width, poly_incident_angle_to_radius, principal_point, image_orientation, image_inclination, estimated_fov, az_zen_array, original_time_array):
     print(f"{Fore.YELLOW}Computing hourly DIRECT shading factor...{Style.RESET_ALL}")
     complementary_direct_shading_factor = np.zeros(len(original_time_array))
 
@@ -20,7 +20,7 @@ def compute_direct_shading_factor(image, im_height, im_width, poly_incident_angl
     zen_array = combined_array[2]
 
     # use the extrinsic function to compute the solar homo coords in cam's reference
-    camera_homo_coords = astropy_to_camera_extrinsic([az_array,zen_array], orientation, inclination)
+    camera_homo_coords = astropy_to_camera_extrinsic([az_array,zen_array], image_orientation, image_inclination)
     image_coords = camera_coords_to_image_intrinsic(camera_homo_coords, poly_incident_angle_to_radius, principal_point)
 
     # we need the minimum image size so that we can avoid the jump from one day to another

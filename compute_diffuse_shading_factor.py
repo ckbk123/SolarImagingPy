@@ -8,6 +8,9 @@ from colorama import Fore, Style
 def compute_diffuse_shading_factor(image, poly_incident_angle_to_radius, principal_point, estimated_fov, im_height, im_width):
     print(f"{Fore.YELLOW}Computing global DIFFUSE shading factor...{Style.RESET_ALL}")
 
+    # here is the general method and assumptions: we must first assume that the user must take the photo oriented correctly (flat to the ground with bottom toward South)
+    # then we must determine the equations of the solar harvesting plane
+
     ## create a photo
     azimuth_length = 1000
     zenith_length = 500
@@ -109,26 +112,23 @@ def compute_diffuse_shading_factor_NASA(image, poly_incident_angle_to_radius, pr
             if equi_point[ver][hor][0] >= 0 and equi_point[ver][hor][0] < im_width and equi_point[ver][hor][1] >= 0 and equi_point[ver][hor][1] < im_height:
                     conformal_image[ver][hor] = image[equi_point[ver][hor][1]][equi_point[ver][hor][0]]
 
-    cv2.imshow('conformal_image', conformal_image)
     # NOW EDIT THE CONFORMAL IMAGE VERSION TO REMOVE SECTION OF THE SKY THAT IS NOT VISIBLE BY THE SOLAR HARVESTING SURFACE
     # first step is to determine the normal vector N to the surface plane. This vector is described using the orientation and inclination of the solar harvesting surface
     conformal_image_plane_map = np.zeros((zenith_length, azimuth_length), dtype=np.uint8)
 
     # determine the x,y coordinate that describes the Cartesian normal vector of the solar harvesting plane in ground basis
-    azimuth_panel = (inclined_surface_orientation) * np.pi / 180
-    zenith_panel = (-inclined_surface_inclination) * np.pi / 180
+    azimuth_panel = (inclined_surface_orientation+90) * np.pi / 180         # this is because the inclination is taken along the Ox rotation, so the normal vector is always co-planar in Oyz
+    zenith_panel = (inclined_surface_inclination) * np.pi / 180
     x_normal = np.sin(zenith_panel) * np.cos(azimuth_panel) / np.cos(zenith_panel)
     y_normal = np.sin(zenith_panel) * np.sin(azimuth_panel) / np.cos(zenith_panel)
-    print(x_normal)
-    print(y_normal)
+
     # then convert the set of x_normal, y_normal into the camera extrinsic coordiantes
     normal_coords_in_camera_extrinsic = ground_homogenous_to_camera_extrinsic([x_normal, y_normal], image_orientation, image_inclination)
 
     # we now obtain a Cartesian set of coords that describes the normal vector to the solar harvesting plane in camera coords
     x_normal_in_cam_coords = normal_coords_in_camera_extrinsic[0]
     y_normal_in_cam_coords = normal_coords_in_camera_extrinsic[1]
-    print(x_normal_in_cam_coords)
-    print(y_normal_in_cam_coords)
+
 
     # an explanation for this section
     # basically for a given normal vector [Nx, Ny, Nz] of a plane that points toward the "positive" side of that plane and a given point [X,Y,Z]
@@ -137,12 +137,11 @@ def compute_diffuse_shading_factor_NASA(image, poly_incident_angle_to_radius, pr
         for hor in horizontal_index:
             # print(x_prime[ver][hor] * x_normal_in_cam_coords + y_prime[ver][hor] * y_normal_in_cam_coords + 1 * 1)
             if x_prime[ver][hor]*x_normal_in_cam_coords + y_prime[ver][hor]*y_normal_in_cam_coords + 1*1 > 0:
-                conformal_image_plane_map[ver][hor] = 255
+                conformal_image_plane_map[ver][hor] = 1
 
-    cv2.imshow('conformal_image_2', conformal_image_plane_map)
     # by multiplying conformal image to conformal_image_plane_map, the pixels that are visible by the solar harvesting plane stays the same
     # while those that are not visible is set to 0
-    # conformal_image = np.multiply(conformal_image, conformal_image_plane_map)
+    conformal_image = np.multiply(conformal_image, conformal_image_plane_map)
 
     # note that we use the true_90 instead of zenith length because this will maximize the shading factor
     diffuse_coeff = (azimuth_length*true_90 - cv2.sumElems(conformal_image)[0] / 255) / (azimuth_length*true_90)

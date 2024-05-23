@@ -6,7 +6,9 @@ from astropy_to_camera_extrinsic import astropy_to_camera_extrinsic
 
 from colorama import Fore, Style
 
-def compute_direct_shading_factor(image, im_height, im_width, poly_incident_angle_to_radius, principal_point, image_orientation, image_inclination, estimated_fov, az_zen_array, original_time_array):
+# direct shading factor is computed from 2 things: the photo and the position of the sun
+# the factor must then be applied to the normal direct data (meaning the direct irradiation on the plane perpendicular to the rays) and not on a plane perpendicular to ground
+def compute_direct_shading_factor(image, im_height, im_width, poly_incident_angle_to_radius, principal_point, orientation, inclination, estimated_fov, az_zen_array, original_time_array):
     print(f"{Fore.YELLOW}Computing hourly DIRECT shading factor...{Style.RESET_ALL}")
     complementary_direct_shading_factor = np.zeros(len(original_time_array))
 
@@ -20,7 +22,7 @@ def compute_direct_shading_factor(image, im_height, im_width, poly_incident_angl
     zen_array = combined_array[2]
 
     # use the extrinsic function to compute the solar homo coords in cam's reference
-    camera_homo_coords = astropy_to_camera_extrinsic([az_array,zen_array], image_orientation, image_inclination)
+    camera_homo_coords = astropy_to_camera_extrinsic([az_array,zen_array], orientation, inclination)
     image_coords = camera_coords_to_image_intrinsic(camera_homo_coords, poly_incident_angle_to_radius, principal_point)
 
     # we need the minimum image size so that we can avoid the jump from one day to another
@@ -47,7 +49,7 @@ def adjust_NASA_direct_irradiance_with_surface_position(direct_data, solar_azimu
 
     # to make it simpler with the formula I found, I converted the variables
     z = solar_zenith*np.pi/180        # no change because Oz doesnt change after transform. This is an array
-    a = (solar_azimuth - 90)*np.pi/180         # change because Ox is rotated. This is an array
+    a = (270 - solar_azimuth)*np.pi/180         # change because Ox is rotated. This is an array
     alpha = inclined_surface_inclination*np.pi/180    # scalar
     b = inclined_surface_azimuth*np.pi/180            # scalar
 

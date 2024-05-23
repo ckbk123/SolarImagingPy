@@ -50,15 +50,15 @@ if __name__ == '__main__':
             #     float(user_data['Inclination (°)'][0]))
 
             normal_direct_irradiance, hor_diffuse_irradiance, time_array = retrieve_NASA_POWER_irradiance(
-                    float(user_data['Lattitude (°)'][0]),
-                    float(user_data['Longitude (°)'][0]),
-                    str(int(user_data['Start year'][0])),
-                    str(int(user_data['End year'][0])))
+                    lat = float(user_data['Lattitude (°)'][0]),
+                    long = float(user_data['Longitude (°)'][0]),
+                    start_time = (int(user_data['Start year'][0])),
+                    end_time = (int(user_data['End year'][0])))
             astropy_coords = sunpath_from_astropy(
-                float(user_data['Longitude (°)'][0]),
-                float(user_data['Lattitude (°)'][0]),
-                float(user_data['Elevation (m)'][0]),
-                time_array)
+                longitude = float(user_data['Longitude (°)'][0]),
+                latitude = float(user_data['Lattitude (°)'][0]),
+                ground_level=(user_data['Elevation (m)'][0]),
+                time_array=time_array)
 
             # with NASA POWER, we need to convert the normal_direct_irradiance over to horizontal_direct_irradiance
             hor_direct_irradiance = adjust_NASA_direct_irradiance_with_surface_position(normal_direct_irradiance,
@@ -122,7 +122,7 @@ if __name__ == '__main__':
             final_irradiance = compensated_direct + compensated_diffuse
 
             compensated_irradiance_data = {'Compensated_direct': compensated_direct, 'Compensated_diffuse': compensated_diffuse}
-            compensated_irradiance_dataframe = pd.DataFrame(compensated_irradiance_data, index=time_array)
+            compensated_irradiance_dataframe = pd.DataFrame(compensated_irradiance_data, index = time_array)
             compensated_irradiance_dataframe.index.name = 'Timeseries'
             compensated_irradiance_dataframe.to_csv('./DebugData/compensated_irradiance.csv')
 

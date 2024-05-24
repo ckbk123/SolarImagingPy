@@ -11,7 +11,6 @@ def retrieve_NASA_POWER_irradiance(lat, long, start_time, end_time):
     base_url = r"https://power.larc.nasa.gov/api/temporal/hourly/point?parameters=ALLSKY_SFC_SW_DIFF,ALLSKY_SFC_SW_DNI&community=RE&longitude={longitude}&latitude={latitude}&start={start_time}&end={end_time}&format=JSON&time-standard=UTC"
 
     api_request_url = base_url.format(longitude=long, latitude=lat, start_time=start_time, end_time=end_time)
-    print(api_request_url)
 
     response = requests.get(url=api_request_url, verify=True, timeout=30.00)
 

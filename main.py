@@ -17,7 +17,7 @@ import matplotlib.backends.backend_tkagg
 import matplotlib.backends.backend_pdf
 matplotlib.use('TkAgg')
 
-if __name__ == '__main__':
+def main():
     print(f"{Fore.LIGHTBLUE_EX}Welcome to CKBK's shading estimation tool{Style.RESET_ALL}")
 
     print(f"{Fore.LIGHTMAGENTA_EX}Remind you all the relevant information: calibration images to be put in CalibrationImages, ONE black and white sky photo in SkyImageOfSite, the system's consumption in SystemData/Consumption_Profile.xlsx, the system's specs in System_Specifications.xlsx...{Style.RESET_ALL}")
@@ -55,10 +55,10 @@ if __name__ == '__main__':
                     start_time = (int(user_data['Start year'][0])),
                     end_time = (int(user_data['End year'][0])))
             astropy_coords = sunpath_from_astropy(
-                longitude = float(user_data['Longitude (°)'][0]),
-                latitude = float(user_data['Lattitude (°)'][0]),
-                ground_level=(user_data['Elevation (m)'][0]),
-                time_array=time_array)
+                    longitude = float(user_data['Longitude (°)'][0]),
+                    latitude = float(user_data['Lattitude (°)'][0]),
+                    ground_level=(user_data['Elevation (m)'][0]),
+                    time_array=time_array)
 
             # with NASA POWER, we need to convert the normal_direct_irradiance over to horizontal_direct_irradiance
             hor_direct_irradiance = adjust_NASA_direct_irradiance_with_surface_position(normal_direct_irradiance,
@@ -95,15 +95,15 @@ if __name__ == '__main__':
             #     im_width)
 
             diffuse_shading_factor = compute_diffuse_shading_factor_NASA(image = skyimage,
-                                                poly_incident_angle_to_radius = poly_incident_angle_to_radius,
-                                                principal_point = principal_point,
-                                                estimated_fov = estimated_fov,
-                                                im_height = im_height,
-                                                im_width = im_width,
-                                                image_orientation = float(user_data['Image orientation (°)'][0]),
-                                                image_inclination = float(user_data['Image inclination (°)'][0]),
-                                                inclined_surface_orientation = float(user_data['Plane orientation (°)'][0]),
-                                                inclined_surface_inclination = float(user_data['Plane inclination (°)'][0]))
+                                                        poly_incident_angle_to_radius = poly_incident_angle_to_radius,
+                                                        principal_point = principal_point,
+                                                        estimated_fov = estimated_fov,
+                                                        im_height = im_height,
+                                                        im_width = im_width,
+                                                        image_orientation = float(user_data['Image orientation (°)'][0]),
+                                                        image_inclination = float(user_data['Image inclination (°)'][0]),
+                                                        inclined_surface_orientation = float(user_data['Plane orientation (°)'][0]),
+                                                        inclined_surface_inclination = float(user_data['Plane inclination (°)'][0]))
 
             direct_shading_factor = compute_direct_shading_factor(
                 skyimage,
@@ -159,3 +159,5 @@ if __name__ == '__main__':
                 time.sleep(1)
 
 
+if __name__ == '__main__':
+    main()

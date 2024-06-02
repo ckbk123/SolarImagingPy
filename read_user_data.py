@@ -9,12 +9,13 @@ from colorama import Fore, Style
 # it should save everything about the files so that it can keep track whether changes have been applied
 def read_user_data():
     # 4 means that nothing will be executed
-    # 3 means that the state of charge estimation will be redone
+    # 3 means that the state of charge estimation will be recalculated
     # 2 means that shading will be recalculated
     # 1 means that raw irradiance will be recalculated
     # 0 means that calibration will be redone
     control_option = 4
-    #################################### next is the Consumption_Profile.xlsx ##########################################
+    #################################### we first read the Consumption_Profile.xlsx ##########################################
+    # read Consumption_Profile.xlsx and check whether the file exist
     print(f"{Fore.YELLOW}Reading your consumption profile sheet...{Style.RESET_ALL}")
     while (1):
         try:
@@ -30,6 +31,8 @@ def read_user_data():
 
     print(f"{Fore.YELLOW}Reading saved consumption profile sheet...{Style.RESET_ALL}")
 
+    # read the Save_Consumption_Profile.xlsx and compare the data extracted from this file to Consumption_Profile.
+    # if the data is exactly the same,
     try:
         saved_consumption_profile = pd.read_excel('./DebugData/Saved_Consumption_Profile.xlsx', index_col='Hour of day')
         if (saved_consumption_profile.equals(raw_consumption_profile)):

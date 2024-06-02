@@ -5,6 +5,7 @@ from astropy_to_camera_extrinsic import ground_homogenous_to_camera_extrinsic
 from colorama import Fore, Style
 
 # the reference frame of the "remapped" image is the camera coordinate basis
+# OBSOLETE: since the update to NASA POWER services, the diffuse shading calculation has also been updated. Please use the other function
 def compute_diffuse_shading_factor(image, poly_incident_angle_to_radius, principal_point, estimated_fov, im_height, im_width):
     print(f"{Fore.YELLOW}Computing global DIFFUSE shading factor...{Style.RESET_ALL}")
 
@@ -75,15 +76,16 @@ def compute_diffuse_shading_factor_NASA(image, poly_incident_angle_to_radius, pr
 
     ## so the created photo have around 500 corresponding to the estimated_fov
     ## so what would be the true length with we have 90 perfectly?
-    true_90 = zenith_length/(1-np.cos(estimated_fov))
+    k1 = zenith_length/(1-np.cos(estimated_fov))
+    k2 = azimuth_length/(2*np.pi)
 
     # construct the array of index to iterate thru azimuth + zenith and the respective blank image
     horizontal_index = np.linspace(0, azimuth_length-1, azimuth_length, True, False, 'int')
     vertical_index = np.linspace(0, zenith_length-1, zenith_length, True, False, 'int')
 
     # each point on the conformal image has an equivalent azimuth and zenith
-    azimuth_remapped = horizontal_index*2*np.pi/azimuth_length
-    zenith_remapped = np.arccos(1-(vertical_index+1)/true_90)
+    azimuth_remapped = horizontal_index/k2
+    zenith_remapped = np.arccos(1-(vertical_index+1)/k1)
 
     # create a meshgrid of coordinates. Note that the zenith section is in one mat zenith_mat and azimuth is in the other mat
     zenith_mat, azimuth_mat = np.meshgrid(zenith_remapped, azimuth_remapped, indexing='ij')
@@ -129,13 +131,11 @@ def compute_diffuse_shading_factor_NASA(image, poly_incident_angle_to_radius, pr
     x_normal_in_cam_coords = normal_coords_in_camera_extrinsic[0]
     y_normal_in_cam_coords = normal_coords_in_camera_extrinsic[1]
 
-
     # an explanation for this section
     # basically for a given normal vector [Nx, Ny, Nz] of a plane that points toward the "positive" side of that plane and a given point [X,Y,Z]
     # we could check if [X,Y,Z] belongs in this positive side by checking X*Nx + Y*Ny + Z*Nz > 0
     for ver in vertical_index:
         for hor in horizontal_index:
-            # print(x_prime[ver][hor] * x_normal_in_cam_coords + y_prime[ver][hor] * y_normal_in_cam_coords + 1 * 1)
             if x_prime[ver][hor]*x_normal_in_cam_coords + y_prime[ver][hor]*y_normal_in_cam_coords + 1*1 > 0:
                 conformal_image_plane_map[ver][hor] = 1
 
@@ -143,8 +143,8 @@ def compute_diffuse_shading_factor_NASA(image, poly_incident_angle_to_radius, pr
     # while those that are not visible is set to 0
     conformal_image = np.multiply(conformal_image, conformal_image_plane_map)
 
-    # note that we use the true_90 instead of zenith length because this will maximize the shading factor
-    diffuse_coeff = (azimuth_length*true_90 - cv2.sumElems(conformal_image)[0] / 255) / (azimuth_length*true_90)
+    # note that we use the k1 instead of zenith length because this will maximize the shading factor
+    diffuse_coeff = (azimuth_length*k1 - cv2.sumElems(conformal_image)[0] / 255) / (azimuth_length*k1)
 
     print(f'{Fore.GREEN}Diffuse shading factor is around ' + str(round(diffuse_coeff, 2)) + f'{Style.RESET_ALL}')
     return diffuse_coeff        # this essentially returns the diffuse component after compensated with shadings

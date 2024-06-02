@@ -2,7 +2,7 @@
 from colorama import Fore, Style
 from read_user_data import read_user_data
 from compute_diffuse_shading_factor import compute_diffuse_shading_factor, compute_diffuse_shading_factor_NASA
-from compute_direct_shading_factor import compute_direct_shading_factor, adjust_NASA_direct_irradiance_with_surface_position
+from compute_direct_shading_factor import compute_direct_shading_factor_NASA, adjust_NASA_direct_irradiance_with_surface_position
 from import_camera_intrinsic_function import import_camera_intrinsic_function
 from retrieve_PVGIS_irradiance import retrieve_PVGIS_irradiance
 from retrieve_NASA_POWER_irradiance import retrieve_NASA_POWER_irradiance
@@ -67,7 +67,7 @@ def main():
                                                                                         float(user_data['Image orientation (°)'][0]),
                                                                                         float(user_data['Image inclination (°)'][0]))
 
-            raw_irradiance_data = {'Raw_direct': hor_direct_irradiance, 'Raw_diffuse': hor_diffuse_irradiance, 'Solar_az': astropy_coords[0], 'Solar_zen': astropy_coords[1]}
+            raw_irradiance_data = {'Raw_direct': normal_direct_irradiance, 'Raw_direct_plane_adjusted': hor_direct_irradiance, 'Raw_diffuse': hor_diffuse_irradiance, 'Solar_az': astropy_coords[0], 'Solar_zen': astropy_coords[1]}
             raw_irradiance_dataframe = pd.DataFrame(raw_irradiance_data, index=time_array)
             raw_irradiance_dataframe.index.name = 'Timeseries'
             raw_irradiance_dataframe.to_csv('./DebugData/raw_irradiance.csv')
@@ -105,21 +105,22 @@ def main():
                                                         inclined_surface_orientation = float(user_data['Plane orientation (°)'][0]),
                                                         inclined_surface_inclination = float(user_data['Plane inclination (°)'][0]))
 
-            direct_shading_factor = compute_direct_shading_factor(
-                skyimage,
-                im_height,
-                im_width,
-                poly_incident_angle_to_radius,
-                principal_point,
-                float(user_data['Image orientation (°)'][0]),
-                float(user_data['Image inclination (°)'][0]),
-                estimated_fov,
-                astropy_coords,
-                time_array)
+            direct_shading_factor = compute_direct_shading_factor_NASA(
+                image = skyimage,
+                im_height =im_height,
+                im_width = im_width,
+                poly_incident_angle_to_radius = poly_incident_angle_to_radius,
+                principal_point = principal_point,
+                image_orientation = float(user_data['Image orientation (°)'][0]),
+                image_inclination = float(user_data['Image inclination (°)'][0]),
+                inclined_surface_orientation = float(user_data['Plane orientation (°)'][0]),
+                inclined_surface_inclination = float(user_data['Plane inclination (°)'][0]),
+                estimated_fov = estimated_fov,
+                az_zen_array= astropy_coords,
+                original_time_array= time_array)
 
             compensated_direct = np.multiply(np.array(direct_irradiance), np.array(1-direct_shading_factor))
             compensated_diffuse = np.array(diffuse_irradiance) * (1-diffuse_shading_factor)
-            final_irradiance = compensated_direct + compensated_diffuse
 
             compensated_irradiance_data = {'Compensated_direct': compensated_direct, 'Compensated_diffuse': compensated_diffuse}
             compensated_irradiance_dataframe = pd.DataFrame(compensated_irradiance_data, index = time_array)

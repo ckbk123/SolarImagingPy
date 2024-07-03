@@ -25,7 +25,7 @@ def compute_diffuse_shading_factor(image, poly_incident_angle_to_radius, princip
     horizontal_index = np.linspace(0, azimuth_length-1, azimuth_length, True, False, 'int')
     vertical_index = np.linspace(0, zenith_length-1, zenith_length, True, False, 'int')
 
-    # each point on the conformal image has an equivalent azimuth and zenith
+    # each point on the equiareal image has an equivalent azimuth and zenith
     azimuth_remapped = horizontal_index*2*np.pi/azimuth_length
     zenith_remapped = np.arccos(1-(vertical_index+1)/true_90)
 
@@ -49,15 +49,15 @@ def compute_diffuse_shading_factor(image, poly_incident_angle_to_radius, princip
     # this means that the first component in the equi_point is actually the HORIZONTAL coordinates and the second component is the VERTICAL COORDINATES
     # so you need to check the [0] component with im_width and [1] with im_height
     # then the access is done as image[equi_point[ver][hor][1]][equi_point[ver][hor][0]]
-    conformal_image = np.zeros((zenith_length, azimuth_length), dtype=np.uint8)
+    equiareal_image = np.zeros((zenith_length, azimuth_length), dtype=np.uint8)
 
     for ver in vertical_index:
         for hor in horizontal_index:
             if equi_point[ver][hor][0] >= 0 and equi_point[ver][hor][0] < im_width and equi_point[ver][hor][1] >= 0 and equi_point[ver][hor][1] < im_height:
-                    conformal_image[ver][hor] = image[equi_point[ver][hor][1]][equi_point[ver][hor][0]]
+                    equiareal_image[ver][hor] = image[equi_point[ver][hor][1]][equi_point[ver][hor][0]]
 
     # note that we use the true_90 instead of zenith length because this will maximize the shading factor
-    diffuse_coeff = (azimuth_length*true_90 - cv2.sumElems(conformal_image)[0] / 255) / (azimuth_length*true_90)
+    diffuse_coeff = (azimuth_length*true_90 - cv2.sumElems(equiareal_image)[0] / 255) / (azimuth_length*true_90)
 
     print(f'{Fore.GREEN}Diffuse shading factor is around ' + str(round(diffuse_coeff, 2)) + f'{Style.RESET_ALL}')
     return diffuse_coeff        # this essentially returns the diffuse component after compensated with shadings
@@ -68,7 +68,7 @@ def compute_diffuse_shading_factor_NASA(image, poly_incident_angle_to_radius, pr
     ## OK SO HERES THE PROBLEM: WE MUST ASSUME THAT THE USER TAKE THE PHOTO HORIZONTAL TO GROUND
     ## AND THE BOTTOM OF THE PHOTO POINTS SOUTH. SO EAST IS TO THE LEFT OF PHOTO
 
-    # THIS SECTION TRANSFORM THE FISHEYE IMAGE INTO A CONFORMAL REMAPPED IMAGE
+    # THIS SECTION TRANSFORM THE FISHEYE IMAGE INTO A equiareal REMAPPED IMAGE
     ## create a photo
     azimuth_length = 1000
     zenith_length = 500
@@ -83,7 +83,7 @@ def compute_diffuse_shading_factor_NASA(image, poly_incident_angle_to_radius, pr
     horizontal_index = np.linspace(0, azimuth_length-1, azimuth_length, True, False, 'int')
     vertical_index = np.linspace(0, zenith_length-1, zenith_length, True, False, 'int')
 
-    # each point on the conformal image has an equivalent azimuth and zenith
+    # each point on the equiareal image has an equivalent azimuth and zenith
     azimuth_remapped = horizontal_index/k2
     zenith_remapped = np.arccos(1-(vertical_index+1)/k1)
 
@@ -107,16 +107,17 @@ def compute_diffuse_shading_factor_NASA(image, poly_incident_angle_to_radius, pr
     # this means that the first component in the equi_point is actually the HORIZONTAL coordinates and the second component is the VERTICAL COORDINATES
     # so you need to check the [0] component with im_width and [1] with im_height
     # then the access is done as image[equi_point[ver][hor][1]][equi_point[ver][hor][0]]
-    conformal_image = np.zeros((zenith_length, azimuth_length), dtype=np.uint8)
+    equiareal_image = np.zeros((zenith_length, azimuth_length), dtype=np.uint8)
 
     for ver in vertical_index:
         for hor in horizontal_index:
             if equi_point[ver][hor][0] >= 0 and equi_point[ver][hor][0] < im_width and equi_point[ver][hor][1] >= 0 and equi_point[ver][hor][1] < im_height:
-                    conformal_image[ver][hor] = image[equi_point[ver][hor][1]][equi_point[ver][hor][0]]
+                    equiareal_image[ver][hor] = image[equi_point[ver][hor][1]][equi_point[ver][hor][0]]
+    cv2.imshow('figure1', equiareal_image)
 
-    # NOW EDIT THE CONFORMAL IMAGE VERSION TO REMOVE SECTION OF THE SKY THAT IS NOT VISIBLE BY THE SOLAR HARVESTING SURFACE
+    # NOW EDIT THE equiareal IMAGE VERSION TO REMOVE SECTION OF THE SKY THAT IS NOT VISIBLE BY THE SOLAR HARVESTING SURFACE
     # first step is to determine the normal vector N to the surface plane. This vector is described using the orientation and inclination of the solar harvesting surface
-    conformal_image_plane_map = np.zeros((zenith_length, azimuth_length), dtype=np.uint8)
+    equiareal_image_plane_map = np.zeros((zenith_length, azimuth_length), dtype=np.uint8)
 
     # determine the x,y coordinate that describes the Cartesian normal vector of the solar harvesting plane in ground basis
     azimuth_panel = (inclined_surface_orientation+90) * np.pi / 180         # this is because the inclination is taken along the Ox rotation, so the normal vector is always co-planar in Oyz
@@ -137,14 +138,18 @@ def compute_diffuse_shading_factor_NASA(image, poly_incident_angle_to_radius, pr
     for ver in vertical_index:
         for hor in horizontal_index:
             if x_prime[ver][hor]*x_normal_in_cam_coords + y_prime[ver][hor]*y_normal_in_cam_coords + 1*1 > 0:
-                conformal_image_plane_map[ver][hor] = 1
+                equiareal_image_plane_map[ver][hor] = 1
+    cv2.imshow('figure2', equiareal_image_plane_map*255)
+    cv2.waitKey()
 
-    # by multiplying conformal image to conformal_image_plane_map, the pixels that are visible by the solar harvesting plane stays the same
+    # by multiplying equiareal image to equiareal_image_plane_map, the pixels that are visible by the solar harvesting plane stays the same
     # while those that are not visible is set to 0
-    conformal_image = np.multiply(conformal_image, conformal_image_plane_map)
+    equiareal_image = np.multiply(equiareal_image, equiareal_image_plane_map)
+    cv2.imshow('figure3', equiareal_image)
+    cv2.waitKey()
 
     # note that we use the k1 instead of zenith length because this will maximize the shading factor
-    diffuse_coeff = (azimuth_length*k1 - cv2.sumElems(conformal_image)[0] / 255) / (azimuth_length*k1)
+    diffuse_coeff = (azimuth_length*k1 - cv2.sumElems(equiareal_image)[0] / 255) / (azimuth_length*k1)
 
     print(f'{Fore.GREEN}Diffuse shading factor is around ' + str(round(diffuse_coeff, 2)) + f'{Style.RESET_ALL}')
     return diffuse_coeff        # this essentially returns the diffuse component after compensated with shadings

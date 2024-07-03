@@ -18,8 +18,11 @@ def state_of_charge_estimation(final_irradiance, time_array, solar_peak, conv_ef
     # if this is positive, it means battery is getting some energy in
     # if this is negative, it means that the battery must be supplying energy
     energy_out_of_converter = final_irradiance * solar_peak * conv_eff/(1000*100)
-    energy_out_of_converter[energy_out_of_converter > conv_max] = conv_max
+
+    energy_out_of_converter[energy_out_of_converter > conv_max] = conv_max      # this is kinda unnecessary most of the time, but useful if PV power surpasses rated power of converter
+
     energy_flow_to_from_battery = energy_out_of_converter - consumption_over_time
+
     soc_evolution = np.zeros(len(time_array))
     soc_evolution[0] = max_soc
 

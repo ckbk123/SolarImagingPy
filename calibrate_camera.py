@@ -39,7 +39,7 @@ def calibrate_camera(pattern_cols, pattern_rows, square_size, images):
         img_bw = cv2.filter2D(img_bw, -1, kernel)
 
         # downsize image (by 4)
-        downsized_img_bw = cv2.resize(img_bw, (int(img_bw.shape[1] / 4), int(img_bw.shape[0] / 4)),
+        downsized_img_bw = cv2.resize(img_bw, (int(img_bw.shape[1] / 8), int(img_bw.shape[0] / 8)),
                                       interpolation=cv2.INTER_AREA)
         # sharpen it some more to make sure the corners stands out
         kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])
@@ -60,7 +60,7 @@ def calibrate_camera(pattern_cols, pattern_rows, square_size, images):
             objpoints.append(objp)
 
             # remultiply the values (by 4 because corners detected on 4 time downsized image)
-            corners = temp_corners * 4
+            corners = temp_corners * 8
             # refining pixel coordinates for given 2d points.
             corners2 = cv2.cornerSubPix(img_bw, corners, (11, 11), (-1, -1), criteria)
 

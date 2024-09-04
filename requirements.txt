@@ -11,3 +11,5 @@ autograd
 scipy
 pvlib
 astropy
+mmcv
+mmsegmentation

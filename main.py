@@ -28,11 +28,6 @@ def main():
         user_data, raw_consumption_profile, calib_files, skyimage, control_sequence = read_user_data()
         temp = input(f"{Fore.LIGHTCYAN_EX}Press ENTER to initiate an estimation...{Style.RESET_ALL}")
 
-        # DEBUG FOR AUTOMATIC SKY DETECTION
-        control_sequence = 5
-        output = inference("./calibration.yml","./SkyImageOfSite/picture_sky.jpg")
-        cv2.imwrite('./DebugData/sky_detection_test.jpg', output*255)
-
         # this is no change, so ask the user if they want to redo everything from scratch
         # this usually could fix some bugs
         if (control_sequence == 4):
@@ -79,7 +74,7 @@ def main():
             raw_irradiance_dataframe.index.name = 'Timeseries'
             raw_irradiance_dataframe.to_csv('./DebugData/raw_irradiance.csv')
 
-        ################################## COMPENSATE IRRADIANCE WITH SHADING ##########################################
+        ################################## ADJUST IRRADIANCE WITH SHADING ##########################################
         if (control_sequence < 3):
             raw_irradiance_data = pd.read_csv('./DebugData/raw_irradiance.csv', index_col = 'Timeseries')
             time_array = pd.to_datetime(raw_irradiance_data.index)
@@ -93,6 +88,10 @@ def main():
             poly_incident_angle_to_radius, principal_point, estimated_fov = import_camera_intrinsic_function()
             im_height, im_width = skyimage.shape
 
+            skyimage_bw_mask = inference("./calibration.yml", "./SkyImageOfSite/picture_sky.jpg")
+            # save a version of the bw mask (values between 0 and 1) to an image that could be visualized (hence the times 255)
+            cv2.imwrite('./DebugData/sky_detection_test.jpg', skyimage_bw_mask * 255)
+
             # diffuse_shading_factor = compute_diffuse_shading_factor(
             #     skyimage,
             #     poly_incident_angle_to_radius,
@@ -101,7 +100,7 @@ def main():
             #     im_height,
             #     im_width)
 
-            diffuse_shading_factor = compute_diffuse_shading_factor_NASA(image = skyimage,
+            diffuse_shading_factor = compute_diffuse_shading_factor_NASA(image = skyimage_bw_mask * 255,
                                                         poly_incident_angle_to_radius = poly_incident_angle_to_radius,
                                                         principal_point = principal_point,
                                                         estimated_fov = estimated_fov,
@@ -113,7 +112,7 @@ def main():
                                                         inclined_surface_inclination = float(user_data['Plane inclination (°)'][0]))
 
             direct_shading_factor = compute_direct_shading_factor_NASA(
-                image = skyimage,
+                image = skyimage_bw_mask * 255,
                 im_height =im_height,
                 im_width = im_width,
                 poly_incident_angle_to_radius = poly_incident_angle_to_radius,
